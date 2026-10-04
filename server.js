@@ -41,7 +41,8 @@ function createSub(raw) {
   return [201, { subscription_id: id, status: 'CREATED', challenge_url: `/mock/approve/${id}`, ...(q.defaulted.length ? { note: 'server defaulted: ' + q.defaulted.join(', ') } : {}) }];
 }
 const latestId = () => { const k = Object.keys(subs); return k.length ? k[k.length - 1] : ''; };
-const sid = a => { if (typeof a === 'string') return a; a = unwrap(a); return String(a.subscription_id || a.id || a.subscriptionId || latestId()); };
+const LATEST = v => !v || /^(latest|last|current|recent|most_recent|none|null|unknown)$/i.test(String(v).trim());
+const sid = a => { let v = (typeof a === 'string') ? a : (a = unwrap(a), a.subscription_id || a.id || a.subscriptionId); return LATEST(v) ? latestId() : String(v); };
 const getSub = a => { const id = sid(a); return subs[id] ? [200, { ...subs[id], remaining_amount: subs[id].reserve_amount - subs[id].used_amount }] : [404, { code: 'NOT_FOUND', message: 'unknown subscription_id ' + id }]; };
 const approve = a => { const id = sid(a); return subs[id] ? (subs[id].status = 'ACTIVE', [200, { subscription_id: id, status: 'ACTIVE' }]) : [404, { code: 'NOT_FOUND', message: 'unknown subscription_id ' + id }]; };
 function debit(raw) {
