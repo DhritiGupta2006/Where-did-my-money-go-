@@ -1,0 +1,275 @@
+{
+ "_note": "SAMPLE DATA for demo. Replace with your own real transactions (same fields) before final recording.",
+ "account": {
+  "holder": "Demo user",
+  "bank": "Demo Bank",
+  "masked": "XXXX1234",
+  "currency": "INR"
+ },
+ "transactions": [
+  {
+   "date": "2026-09-01",
+   "direction": "CREDIT",
+   "amount": 30000,
+   "counterparty": "Pocket money / stipend",
+   "vpa": "family@okaxis",
+   "category": "income",
+   "mode": "UPI",
+   "txn_id": "TXN0001",
+   "balance_after": 42500
+  },
+  {
+   "date": "2026-09-02",
+   "direction": "DEBIT",
+   "amount": 320,
+   "counterparty": "Swiggy",
+   "vpa": "swiggy@icici",
+   "category": "food",
+   "mode": "UPI",
+   "txn_id": "TXN0002",
+   "balance_after": 42180
+  },
+  {
+   "date": "2026-09-03",
+   "direction": "DEBIT",
+   "amount": 85,
+   "counterparty": "Campus canteen",
+   "vpa": "canteen@ybl",
+   "category": "food",
+   "mode": "UPI",
+   "txn_id": "TXN0003",
+   "balance_after": 42095
+  },
+  {
+   "date": "2026-09-04",
+   "direction": "DEBIT",
+   "amount": 1200,
+   "counterparty": "Rahul S",
+   "vpa": "rahul.s@okhdfcbank",
+   "category": null,
+   "mode": "UPI",
+   "txn_id": "TXN0004",
+   "balance_after": 40895
+  },
+  {
+   "date": "2026-09-05",
+   "direction": "DEBIT",
+   "amount": 499,
+   "counterparty": "Netflix",
+   "vpa": "netflix@hdfcbank",
+   "category": "subscriptions",
+   "mode": "UPI",
+   "txn_id": "TXN0005",
+   "balance_after": 40396
+  },
+  {
+   "date": "2026-09-07",
+   "direction": "DEBIT",
+   "amount": 650,
+   "counterparty": "Uber",
+   "vpa": "uber@axisbank",
+   "category": "travel",
+   "mode": "UPI",
+   "txn_id": "TXN0006",
+   "balance_after": 39746
+  },
+  {
+   "date": "2026-09-08",
+   "direction": "DEBIT",
+   "amount": 2400,
+   "counterparty": "Amazon",
+   "vpa": "amazon@apl",
+   "category": "shopping",
+   "mode": "UPI",
+   "txn_id": "TXN0007",
+   "balance_after": 37346
+  },
+  {
+   "date": "2026-09-09",
+   "direction": "DEBIT",
+   "amount": 180,
+   "counterparty": "Zomato",
+   "vpa": "zomato@icici",
+   "category": "food",
+   "mode": "UPI",
+   "txn_id": "TXN0008",
+   "balance_after": 37166
+  },
+  {
+   "date": "2026-09-11",
+   "direction": "DEBIT",
+   "amount": 1500,
+   "counterparty": "Ananya",
+   "vpa": "ananya99@oksbi",
+   "category": null,
+   "mode": "UPI",
+   "txn_id": "TXN0009",
+   "balance_after": 35666
+  },
+  {
+   "date": "2026-09-12",
+   "direction": "DEBIT",
+   "amount": 95,
+   "counterparty": "Campus canteen",
+   "vpa": "canteen@ybl",
+   "category": "food",
+   "mode": "UPI",
+   "txn_id": "TXN0010",
+   "balance_after": 35571
+  },
+  {
+   "date": "2026-09-14",
+   "direction": "DEBIT",
+   "amount": 3200,
+   "counterparty": "Myntra",
+   "vpa": "myntra@ybl",
+   "category": "shopping",
+   "mode": "UPI",
+   "txn_id": "TXN0011",
+   "balance_after": 32371
+  },
+  {
+   "date": "2026-09-15",
+   "direction": "DEBIT",
+   "amount": 410,
+   "counterparty": "Swiggy",
+   "vpa": "swiggy@icici",
+   "category": "food",
+   "mode": "UPI",
+   "txn_id": "TXN0012",
+   "balance_after": 31961
+  },
+  {
+   "date": "2026-09-17",
+   "direction": "DEBIT",
+   "amount": 800,
+   "counterparty": "Hostel mess",
+   "vpa": "hostelmess@sbi",
+   "category": "food",
+   "mode": "UPI",
+   "txn_id": "TXN0013",
+   "balance_after": 31161
+  },
+  {
+   "date": "2026-09-19",
+   "direction": "DEBIT",
+   "amount": 230,
+   "counterparty": "Metro recharge",
+   "vpa": "chennaimetro@icici",
+   "category": "travel",
+   "mode": "UPI",
+   "txn_id": "TXN0014",
+   "balance_after": 30931
+  },
+  {
+   "date": "2026-09-21",
+   "direction": "DEBIT",
+   "amount": 1800,
+   "counterparty": "Rahul S",
+   "vpa": "rahul.s@okhdfcbank",
+   "category": null,
+   "mode": "UPI",
+   "txn_id": "TXN0015",
+   "balance_after": 29131
+  },
+  {
+   "date": "2026-09-23",
+   "direction": "DEBIT",
+   "amount": 560,
+   "counterparty": "Zomato",
+   "vpa": "zomato@icici",
+   "category": "food",
+   "mode": "UPI",
+   "txn_id": "TXN0016",
+   "balance_after": 28571
+  },
+  {
+   "date": "2026-09-25",
+   "direction": "DEBIT",
+   "amount": 2000,
+   "counterparty": "Mom",
+   "vpa": "mom@okaxis",
+   "category": "family",
+   "mode": "UPI",
+   "txn_id": "TXN0017",
+   "balance_after": 26571
+  },
+  {
+   "date": "2026-09-27",
+   "direction": "DEBIT",
+   "amount": 740,
+   "counterparty": "Uber",
+   "vpa": "uber@axisbank",
+   "category": "travel",
+   "mode": "UPI",
+   "txn_id": "TXN0018",
+   "balance_after": 25831
+  },
+  {
+   "date": "2026-09-29",
+   "direction": "DEBIT",
+   "amount": 950,
+   "counterparty": "Unknown 98xxxx4421",
+   "vpa": "98xxxx4421@paytm",
+   "category": null,
+   "mode": "UPI",
+   "txn_id": "TXN0019",
+   "balance_after": 24881
+  },
+  {
+   "date": "2026-10-01",
+   "direction": "CREDIT",
+   "amount": 30000,
+   "counterparty": "Pocket money / stipend",
+   "vpa": "family@okaxis",
+   "category": "income",
+   "mode": "UPI",
+   "txn_id": "TXN0020",
+   "balance_after": 54881
+  },
+  {
+   "date": "2026-10-02",
+   "direction": "DEBIT",
+   "amount": 290,
+   "counterparty": "Swiggy",
+   "vpa": "swiggy@icici",
+   "category": "food",
+   "mode": "UPI",
+   "txn_id": "TXN0021",
+   "balance_after": 54591
+  },
+  {
+   "date": "2026-10-03",
+   "direction": "DEBIT",
+   "amount": 499,
+   "counterparty": "Netflix",
+   "vpa": "netflix@hdfcbank",
+   "category": "subscriptions",
+   "mode": "UPI",
+   "txn_id": "TXN0022",
+   "balance_after": 54092
+  },
+  {
+   "date": "2026-10-04",
+   "direction": "DEBIT",
+   "amount": 1000,
+   "counterparty": "Satvik",
+   "vpa": "satvik@okicici",
+   "category": null,
+   "mode": "UPI",
+   "txn_id": "TXN0023",
+   "balance_after": 53092
+  },
+  {
+   "date": "2026-10-04",
+   "direction": "DEBIT",
+   "amount": 5500,
+   "counterparty": "Unknown 90xxxx1177",
+   "vpa": "90xxxx1177@ybl",
+   "category": null,
+   "mode": "UPI",
+   "txn_id": "TXN0024",
+   "balance_after": 47592
+  }
+ ]
+}
