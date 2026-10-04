@@ -87,7 +87,14 @@ const TOOLS = [
   { name: 'mock_user_approve_reserve', description: 'MOCK ONLY: stands in for the user approving the reserve in their own UPI app. Call ONLY after the user says they approved.',
     inputSchema: obj({ subscription_id: { type: 'string' } }, ['subscription_id']) },
 ];
+const CALLS = [];
 async function callTool(name, a, origin) {
+  const r = await callToolInner(name, a, origin);
+  CALLS.push({ at: new Date().toISOString(), tool: name, args: a, result: JSON.stringify(r).slice(0, 600) });
+  if (CALLS.length > 40) CALLS.shift();
+  return r;
+}
+async function callToolInner(name, a, origin) {
   let out;
   if (name === 'bank_get_transactions') out = bankTxns(a);
   else if (name === 'bank_get_balance') out = bankBalance();
@@ -112,6 +119,7 @@ http.createServer(async (req, res) => {
   const p = new URL(req.url, origin).pathname, m = req.method; let mm;
   try {
     if (p === '/health') return send(res, 200, { ok: true });
+    if (p === '/debug/calls') return send(res, 200, CALLS);
     if ((mm = p.match(/^\/audio\/(\w+)\.wav$/)) && audio[mm[1]]) return send(res, 200, audio[mm[1]], 'audio/wav');
     if (p === '/mcp' && m === 'POST') {
       const q = await readBody(req); const id = q.id;
