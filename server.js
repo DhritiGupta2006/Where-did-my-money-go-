@@ -57,7 +57,21 @@ async function gnaniTts({ text, voice, language }, origin) {
 
 // ---------- MCP tool catalog ----------
 const obj = (props, req) => ({ type: 'object', properties: props, required: req });
+const fs = require('fs');
+const LEDGER = () => JSON.parse(fs.readFileSync(require('path').join(__dirname, 'transactions.json'), 'utf8'));
+function bankTxns(a) {
+  const L = LEDGER(); let t = L.transactions;
+  if (a.month) { if (!/^\d{4}-\d{2}$/.test(a.month)) return { error: 'month must be YYYY-MM' }; t = t.filter(x => x.date.startsWith(a.month)); }
+  if (a.direction) t = t.filter(x => x.direction === String(a.direction).toUpperCase());
+  const debit = t.filter(x => x.direction === 'DEBIT').reduce((n, x) => n + x.amount, 0);
+  const credit = t.filter(x => x.direction === 'CREDIT').reduce((n, x) => n + x.amount, 0);
+  return { source: 'self-hosted read-only ledger (not a live bank feed)', note: L._note, account: L.account, month: a.month || 'all', count: t.length, total_debit: debit, total_credit: credit, transactions: t };
+}
+function bankBalance() { const L = LEDGER(); const last = L.transactions[L.transactions.length - 1]; return { account: L.account, balance: last.balance_after, as_of: last.date, currency: 'INR' }; }
 const TOOLS = [
+  { name: 'bank_get_transactions', description: 'READ-ONLY. Returns the user\'s bank transactions (self-hosted ledger loaded from the user\'s own statement, not a live bank feed). Optional month YYYY-MM and direction DEBIT/CREDIT. Rows with category null have an unlabelled counterparty: ask the user who it is.',
+    inputSchema: obj({ month: { type: 'string', description: 'YYYY-MM' }, direction: { type: 'string', description: 'DEBIT or CREDIT' } }, []) },
+  { name: 'bank_get_balance', description: 'READ-ONLY. Latest account balance from the same ledger.', inputSchema: obj({}, []) },
   { name: 'gnani_stt', description: 'REAL Gnani speech-to-text. Takes a URL of an audio clip (max 60s). Returns transcript only; NO confidence score, so always confirm with the user.',
     inputSchema: obj({ audio_url: { type: 'string' }, language_code: { type: 'string', description: 'e.g. en-IN, hi-IN' } }, ['audio_url', 'language_code']) },
   { name: 'gnani_tts', description: 'REAL Gnani text-to-speech. Returns a URL of the WAV file.',
@@ -75,7 +89,9 @@ const TOOLS = [
 ];
 async function callTool(name, a, origin) {
   let out;
-  if (name === 'gnani_stt') out = await gnaniStt(a);
+  if (name === 'bank_get_transactions') out = bankTxns(a);
+  else if (name === 'bank_get_balance') out = bankBalance();
+  else if (name === 'gnani_stt') out = await gnaniStt(a);
   else if (name === 'gnani_tts') out = await gnaniTts(a, origin);
   else if (name === 'reserve_create_sbmd_subscription') {
     if (String(a.customer_id || '').includes('TIMEOUT')) await sleep(30000); // longer than the platform's 10s connector timeout
