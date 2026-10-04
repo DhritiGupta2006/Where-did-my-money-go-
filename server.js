@@ -7,32 +7,50 @@ const subs = {}; const audio = {}; let n = 1000;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // ---------- mock Pine Labs SBMD core (paths/fields per Pine Labs integration-steps docs; errors are OUR mock's) ----------
-function createSub(b) {
-  const pd = b.plan_details || {}; const cid = String(b.customer_id || '');
-  if (!b.merchant_subscription_reference || !cid || !pd.reserve_amount || !pd.validity_days || b.terms_accepted !== true)
-    return [400, { code: 'INVALID_REQUEST', message: 'missing or invalid field' }];
-  if (cid.includes('MALFORMED')) return [200, '{"subscription_id": "SUB_BAD", "status": '];
-  if (pd.reserve_amount > 10000) return [422, { code: 'AMOUNT_EXCEEDS_LIMIT', message: 'max 10000' }];
-  if (pd.validity_days > 90) return [422, { code: 'VALIDITY_EXCEEDS_LIMIT', message: 'max 90 days' }];
-  if (cid.includes('LOWBAL')) return [402, { code: 'INSUFFICIENT_BALANCE', message: 'balance too low to block amount' }];
-  if (cid.includes('NOBANK')) return [422, { code: 'BANK_NOT_SUPPORTED', message: 'only ICICI/Axis savings' }];
-  if (cid.includes('ACTIVE') || Object.values(subs).some(s => s.customer_id === cid && ['CREATED', 'ACTIVE'].includes(s.status)))
+let MODE = 'off'; // one-shot failure injection, set via GET /mock/mode?m=LOWBAL|MALFORMED|NOBANK|ACTIVE|TIMEOUT|off
+const num = v => (v === undefined || v === null || v === '') ? NaN : Number(String(v).replace(/[^\d.]/g, ''));
+const unwrap = b => { b = b || {}; for (const k of ['body', 'arguments', 'request', 'payload']) if (b[k] && typeof b[k] === 'object') b = { ...b, ...b[k] }; return b; };
+const maybeJson = v => { if (typeof v === 'string') { try { return JSON.parse(v); } catch { return v; } } return v; };
+function normalizeCreate(raw) {
+  const b = unwrap(raw); let pd = maybeJson(b.plan_details || b.plan || {}); if (typeof pd !== 'object' || !pd) pd = {};
+  const amount = num(pd.reserve_amount ?? pd.amount ?? b.reserve_amount ?? b.amount?.value ?? b.amount);
+  const days = num(pd.validity_days ?? pd.days ?? b.validity_days ?? b.days);
+  const terms = [true, 'true', 'TRUE', 'yes'].includes(b.terms_accepted);
+  const defaulted = [];
+  let cid = String(b.customer_id || ''); if (!cid) { cid = 'CUST_DHRITI_001'; defaulted.push('customer_id'); }
+  let ref = b.merchant_subscription_reference; if (!ref) { ref = 'AUTO-' + Date.now(); defaulted.push('merchant_subscription_reference'); }
+  return { cid, ref, amount, days, terms, currency: pd.currency || b.currency || 'INR', description: pd.description || b.description || '', defaulted };
+}
+function createSub(raw) {
+  const q = normalizeCreate(raw); const missing = [];
+  if (!(q.amount > 0)) missing.push('plan_details.reserve_amount (positive number)');
+  if (!(q.days > 0)) missing.push('plan_details.validity_days (positive number)');
+  if (!q.terms) missing.push('terms_accepted (must be true, only after the user typed the confirmation)');
+  if (missing.length) return [400, { code: 'INVALID_REQUEST', message: 'missing or invalid field', missing }];
+  const mode = MODE; MODE = 'off'; const cid = q.cid;
+  if (mode === 'MALFORMED' || cid.includes('MALFORMED')) return [200, '{"subscription_id": "SUB_BAD", "status": '];
+  if (q.amount > 10000) return [422, { code: 'AMOUNT_EXCEEDS_LIMIT', message: 'max 10000' }];
+  if (q.days > 90) return [422, { code: 'VALIDITY_EXCEEDS_LIMIT', message: 'max 90 days' }];
+  if (mode === 'LOWBAL' || cid.includes('LOWBAL')) return [402, { code: 'INSUFFICIENT_BALANCE', message: 'balance too low to block amount' }];
+  if (mode === 'NOBANK' || cid.includes('NOBANK')) return [422, { code: 'BANK_NOT_SUPPORTED', message: 'only ICICI/Axis savings' }];
+  if (mode === 'ACTIVE' || cid.includes('ACTIVE') || Object.values(subs).some(s => s.customer_id === cid && ['CREATED', 'ACTIVE'].includes(s.status)))
     return [409, { code: 'ACTIVE_SUBSCRIPTION_EXISTS', message: 'one SBMD subscription per customer' }];
   const id = 'SUB_' + (++n);
-  subs[id] = { subscription_id: id, customer_id: cid, merchant_subscription_reference: b.merchant_subscription_reference,
-    status: 'CREATED', reserve_amount: pd.reserve_amount, used_amount: 0, currency: pd.currency || 'INR',
-    validity_days: pd.validity_days, description: pd.description || '' };
-  return [201, { subscription_id: id, status: 'CREATED', challenge_url: `/mock/approve/${id}` }];
+  subs[id] = { subscription_id: id, customer_id: cid, merchant_subscription_reference: q.ref,
+    status: 'CREATED', reserve_amount: q.amount, used_amount: 0, currency: q.currency, validity_days: q.days, description: q.description };
+  return [201, { subscription_id: id, status: 'CREATED', challenge_url: `/mock/approve/${id}`, ...(q.defaulted.length ? { note: 'server defaulted: ' + q.defaulted.join(', ') } : {}) }];
 }
-const getSub = id => subs[id] ? [200, { ...subs[id], remaining_amount: subs[id].reserve_amount - subs[id].used_amount }] : [404, { code: 'NOT_FOUND' }];
-const approve = id => subs[id] ? (subs[id].status = 'ACTIVE', [200, { subscription_id: id, status: 'ACTIVE' }]) : [404, { code: 'NOT_FOUND' }];
-function debit(b) {
-  const s = subs[b.subscription_id]; const v = b.amount && b.amount.value;
+const sid = a => { if (typeof a === 'string') return a; a = unwrap(a); return String(a.subscription_id || a.id || a.subscriptionId || ''); };
+const getSub = a => { const id = sid(a); return subs[id] ? [200, { ...subs[id], remaining_amount: subs[id].reserve_amount - subs[id].used_amount }] : [404, { code: 'NOT_FOUND', message: 'unknown subscription_id ' + id }]; };
+const approve = a => { const id = sid(a); return subs[id] ? (subs[id].status = 'ACTIVE', [200, { subscription_id: id, status: 'ACTIVE' }]) : [404, { code: 'NOT_FOUND', message: 'unknown subscription_id ' + id }]; };
+function debit(raw) {
+  const b = unwrap(raw); const id = sid(b); const s = subs[id]; const v = num(b.amount?.value ?? b.amount);
   if (!s) return [404, { code: 'NOT_FOUND' }];
   if (s.status !== 'ACTIVE') return [422, { code: 'SUBSCRIPTION_NOT_ACTIVE', status: s.status }];
-  if (!v || v <= 0 || !b.merchant_presentation_reference) return [400, { code: 'INVALID_REQUEST' }];
+  const ref = b.merchant_presentation_reference || ('PRES-AUTO-' + Date.now());
+  if (!(v > 0)) return [400, { code: 'INVALID_REQUEST', message: 'amount.value must be a positive number' }];
   if (v > s.reserve_amount - s.used_amount) return [422, { code: 'EXCEEDS_REMAINING', remaining_amount: s.reserve_amount - s.used_amount }];
-  s.used_amount += v; return [201, { presentation_id: 'PRES_' + (++n), status: 'SUCCESS' }];
+  s.used_amount += v; return [201, { presentation_id: 'PRES_' + (++n), merchant_presentation_reference: ref, status: 'SUCCESS' }];
 }
 
 // ---------- Gnani (REAL calls) ----------
@@ -101,11 +119,11 @@ async function callToolInner(name, a, origin) {
   else if (name === 'gnani_stt') out = await gnaniStt(a);
   else if (name === 'gnani_tts') out = await gnaniTts(a, origin);
   else if (name === 'reserve_create_sbmd_subscription') {
-    if (String(a.customer_id || '').includes('TIMEOUT')) await sleep(30000); // longer than the platform's 10s connector timeout
+    if (String(a.customer_id || '').includes('TIMEOUT') || MODE === 'TIMEOUT') { if (MODE === 'TIMEOUT') MODE = 'off'; await sleep(30000); } // longer than the platform's 10s connector timeout
     const [code, body] = createSub(a); return { isError: code >= 400, content: [{ type: 'text', text: typeof body === 'string' ? body : JSON.stringify({ http_status: code, ...body }) }] };
-  } else if (name === 'reserve_get_sbmd_subscription') { const [c, b] = getSub(a.subscription_id); return { isError: c >= 400, content: [{ type: 'text', text: JSON.stringify({ http_status: c, ...b }) }] }; }
+  } else if (name === 'reserve_get_sbmd_subscription') { const [c, b] = getSub(a); return { isError: c >= 400, content: [{ type: 'text', text: JSON.stringify({ http_status: c, ...b }) }] }; }
   else if (name === 'reserve_create_presentation') { const [c, b] = debit(a); return { isError: c >= 400, content: [{ type: 'text', text: JSON.stringify({ http_status: c, ...b }) }] }; }
-  else if (name === 'mock_user_approve_reserve') { const [c, b] = approve(a.subscription_id); return { isError: c >= 400, content: [{ type: 'text', text: JSON.stringify({ http_status: c, ...b }) }] }; }
+  else if (name === 'mock_user_approve_reserve') { const [c, b] = approve(a); return { isError: c >= 400, content: [{ type: 'text', text: JSON.stringify({ http_status: c, ...b }) }] }; }
   else throw new Error('unknown tool ' + name);
   return { content: [{ type: 'text', text: JSON.stringify(out) }] };
 }
@@ -120,6 +138,9 @@ http.createServer(async (req, res) => {
   try {
     if (p === '/health') return send(res, 200, { ok: true });
     if (p === '/debug/calls') return send(res, 200, CALLS);
+    if (p === '/mock/state') return send(res, 200, { mode: MODE, subscriptions: subs });
+    if (p === '/mock/reset') { for (const k of Object.keys(subs)) delete subs[k]; MODE = 'off'; CALLS.length = 0; return send(res, 200, { reset: true }); }
+    if (p === '/mock/mode') { MODE = new URL(req.url, origin).searchParams.get('m') || 'off'; return send(res, 200, { mode: MODE }); }
     if ((mm = p.match(/^\/audio\/(\w+)\.wav$/)) && audio[mm[1]]) return send(res, 200, audio[mm[1]], 'audio/wav');
     if (p === '/mcp' && m === 'POST') {
       const q = await readBody(req); const id = q.id;
